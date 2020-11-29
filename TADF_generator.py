@@ -1,5 +1,4 @@
 from rdkit import Chem
-from rdkit.Chem import BRICS
 from rdkit.Chem import Draw
 from rdkit.Chem import AllChem
 from rdkit.Chem.Draw.MolDrawing import MolDrawing, DrawingOptions
@@ -83,6 +82,48 @@ def concat_donor_donor_acceptor(acceptor_donor_smi, donors_smi, save_dir, count)
     if not os.path.exists(save_dir):
         os.mkdir(save_dir)
     save_path = os.path.join(save_dir, acceptor_donor_smi + '.jpg')
+    img.save(save_path)
+    return count
+
+def concat_donor_acceptor(acceptor_smi, donors_smi, save_dir, count):
+    m = Chem.MolFromSmiles(acceptor_smi)
+
+    # add 'H' to SMILE
+    m = Chem.AddHs(m)
+    acceptor_smi_h = Chem.MolToSmiles(m)
+
+    # set '[H]' as the connector of donors and acceptors
+    patt = Chem.MolFromSmarts('[H]')
+
+    # set 'donors_smi' as the candidate donors to replace the connector
+    repsmis = donors_smi
+    mols = []
+    mols.append(m)
+    for r in repsmis:
+        rep = Chem.MolFromSmarts(r)
+
+        # replace the connector '[H]' with the candidate donors 'donors_smi'
+        res = AllChem.ReplaceSubstructs(m, patt, rep)
+        mols.extend(res)
+
+    smis = [Chem.MolToSmiles(mol) for mol in mols]
+
+    # remove repeated smiles and acceptor
+    smis = list(set(smis))
+    smis.remove(acceptor_smi_h)
+
+    # set combined acceptors and donors as the new acceptor to iteratively generate TADF once
+    for smi in smis:
+        count = concat_donor_donor_acceptor(smi, donors_smi, save_dir, count)
+
+    mols = [Chem.MolFromSmiles(smi) for smi in smis]
+    count = count + len(mols)
+    img = Draw.MolsToGridImage(mols, molsPerRow=3, subImgSize=(200, 200), legends=['' for x in mols])
+    if not os.path.exists(save_dir):
+        os.mkdir(save_dir)
+    save_path = os.path.join(save_dir, acceptor_smi + '.jpg')
+
+    # save combined TADF
     img.save(save_path)
     return count
 
