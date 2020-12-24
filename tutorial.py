@@ -3,6 +3,10 @@ from rdkit.Chem import BRICS
 from rdkit.Chem import Draw
 from rdkit.Chem import AllChem
 from rdkit.Chem.Draw.MolDrawing import MolDrawing, DrawingOptions
+import os
+
+opts = DrawingOptions()
+opts.includeAtomNumbers = True
 
 def converter(file_name):
     mols = [ mol for mol in Chem.SDMolSupplier(file_name) ]
@@ -96,18 +100,19 @@ def test2():
 
 
 def test3():
-    m = Chem.MolFromSmiles('N#Cc1ccc(C#N)cc1')
-    opts = DrawingOptions()
-    opts.includeAtomNumbers = True
+    m = Chem.MolFromSmiles('c1(ccc2c(c1)c1c(n2c2ccccc2)ccc(c1)[Ne])[Ne]')
     print("m1 Smiles:", Chem.MolToSmiles(m))
     Draw.MolToImage(m, options=opts).show()
-    m = Chem.AddHs(m)
+    #m = Chem.AddHs(m)
     acceptor_smi_h = Chem.MolToSmiles(m)
     print("m2 Smiles:", acceptor_smi_h)
-    Draw.MolToImage(m, options=opts).show()
-    patt = Chem.MolFromSmarts('[H]')
-    #repsmis = ['F', 'Cl', 'Br', 'O']
-    repsmis = ['c1cc2c(cc1)c1c([nH]2)cccc1', 'c1cc(ccc1)Nc1ccccc1', 'c1cc2c(cc1)Oc1c(N2)cccc1']
+    #Draw.MolToImage(m, options=opts).show()
+    patt = Chem.MolFromSmarts('[Ne]')
+    donor = Chem.MolFromSmiles('N(c1ccccc1)(c1ccccc1)[H]')
+    #donor = Chem.AddHs(donor)
+    Draw.MolToImage(donor, options=opts).show()
+    repsmis=[Chem.MolToSmiles(donor)]
+    #repsmis = ['c1cc2c(cc1)c1c([nH]2)cccc1', 'c1cc(ccc1)Nc1ccccc1', 'c1cc2c(cc1)Oc1c(N2)cccc1']
     mols = []
     mols.append(m)
     for r in repsmis:
@@ -116,16 +121,13 @@ def test3():
         mols.extend(res)
     smis = [Chem.MolToSmiles(mol) for mol in mols]
     smis = list(set(smis))
-    smis.remove(acceptor_smi_h)
-
+    # smis.remove(acceptor_smi_h)
     mols = [Chem.MolFromSmiles(smi) for smi in smis]
     Draw.MolsToGridImage(mols, molsPerRow=3, subImgSize=(200, 200), legends=['' for x in mols]).show()
 
 
 def test4():
     m = Chem.MolFromSmiles('[H]c1c([H])c(C#N)c(-c2ccc3c(c2)[nH]c2ccccc23)c([H])c1C#N')
-    opts = DrawingOptions()
-    opts.includeAtomNumbers = True
     print("m1 Smiles:", Chem.MolToSmiles(m))
     Draw.MolToImage(m, options=opts).show()
     m = Chem.AddHs(m)
@@ -149,6 +151,21 @@ def test4():
     Draw.MolsToGridImage(mols, molsPerRow=3, subImgSize=(200, 200), legends=['' for x in mols]).show()
 
 
+def test5():
+    m = Chem.MolFromSmiles('COc1c(Br)cccc1OC')
+    Draw.MolToImage(m, options=opts).show()
+    patt = Chem.MolFromSmarts('OC')
+    repsmis = ['F', 'Cl', 'Br', 'O']
+    mols = []
+    mols.append(m)
+    for r in repsmis:
+        rep = Chem.MolFromSmarts(r)
+        res = AllChem.ReplaceSubstructs(m, patt, rep)
+        mols.extend(res)
+    smis = [Chem.MolToSmiles(mol) for mol in mols]
+    mols = [Chem.MolFromSmiles(smi) for smi in smis]
+    Draw.MolsToGridImage(mols, molsPerRow=3, subImgSize=(200, 200), legends=['' for x in mols]).show()
+
+
 if __name__ == '__main__':
-    #compose()
-    test3()
+    test5()
